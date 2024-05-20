@@ -34,7 +34,7 @@ const uint32_t PUMP_MAX_DURATION = 40; // in seconds
 
 // strict settings
 const uint32_t PUMP_STRICT_LOOP_DURATION = 30; // in seconds
-const uint32_t PUMP_STRICT_TIMING_0[] = {5, 10, 15, 20, 25}; // in seconds
+const uint32_t PUMP_STRICT_TIMING_0[] = {9, 10, 15, 20, 25}; // in seconds
 const uint32_t PUMP_STRICT_TIMING_1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}; // in seconds
 const uint32_t PUMP_STRICT_TIMING_2[] = {15}; // in seconds
 const uint32_t PUMP_STRICT_TIMING_3[] = {0}; // in seconds
@@ -42,7 +42,7 @@ const uint32_t PUMP_STRICT_TIMING_4[] = {30}; // in seconds
 
 // expo settings
 const uint32_t RANDOM_DURATION = 30; // in seconds
-const uint32_t ON_DURATION = 10; // in seconds
+const uint32_t OFF_DURATION = 10; // in seconds
 
 // helpers
 uint8_t PINS_SWITCH_OFF[NUMBER_OF_PUMPS] = {
@@ -154,6 +154,8 @@ void enter_state_strict() {
     }
 }
 
+// TODO: Umstalten in strict state startet nicht sofort
+// TODO: nach dem letzten Wert muss der zustand definiert werden (array overflow)
 void while_state_strict() {
     if (PUMP_STRICT_TIMING_0[strict_timestamp_index[0]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(0);
@@ -214,12 +216,13 @@ void enter_state_expo() {
     expo_timestamp_start = millis();
 }
 
+// TODO: Timing muss dynamisch (abbrechbar) bleiben
 void while_state_expo() {
     // random phase
     for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
         set_random_timestamp(i);
     }
-    while ((millis() - expo_timestamp_start) % ((RANDOM_DURATION + ON_DURATION) * 1000) < RANDOM_DURATION * 1000) {
+    while ((millis() - expo_timestamp_start) % ((RANDOM_DURATION + OFF_DURATION) * 1000) < RANDOM_DURATION * 1000) {
         for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
             if (millis() > next_random_switch[i]) {
                 next_random_switch[i] = millis() + random(PUMP_MIN_DURATION * 1000, PUMP_MAX_DURATION * 1000);
@@ -228,10 +231,10 @@ void while_state_expo() {
         }
     }
 
-    // on phase
-    while((millis() - expo_timestamp_start + RANDOM_DURATION) % ((RANDOM_DURATION + ON_DURATION) * 1000) < (ON_DURATION) * 1000) {
+    // off phase
+    while((millis() - expo_timestamp_start + RANDOM_DURATION) % ((RANDOM_DURATION + OFF_DURATION) * 1000) < (OFF_DURATION) * 1000) {
         for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
-            set_pump(i, HIGH);
+            set_pump(i, LOW);
         }
     }
 }
