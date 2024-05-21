@@ -147,6 +147,9 @@ void enter_state_strict() {
 
     // init vars
     strict_timestamp_start = millis();
+    for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
+        strict_timestamp_index[i] = 0;
+    }
 
     // init all pumps
     for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
@@ -154,43 +157,26 @@ void enter_state_strict() {
     }
 }
 
-// TODO: Umstalten in strict state startet nicht sofort
-// TODO: nach dem letzten Wert muss der zustand definiert werden (array overflow)
 void while_state_strict() {
-    if (PUMP_STRICT_TIMING_0[strict_timestamp_index[0]] * 1000 < (millis() - strict_timestamp_start)) {
+    if (strict_timestamp_index[0] < sizeof(PUMP_STRICT_TIMING_0) / sizeof(uint32_t) && PUMP_STRICT_TIMING_0[strict_timestamp_index[0]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(0);
         strict_timestamp_index[0]++;
-        if (strict_timestamp_index[0] == sizeof(PUMP_STRICT_TIMING_0) / sizeof(uint32_t)) {
-            strict_timestamp_index[0] = 0;
-        }
     }
-    if (PUMP_STRICT_TIMING_1[strict_timestamp_index[1]] * 1000 < (millis() - strict_timestamp_start)) {
+    if (strict_timestamp_index[1] < sizeof(PUMP_STRICT_TIMING_1) / sizeof(uint32_t) && PUMP_STRICT_TIMING_1[strict_timestamp_index[1]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(1);
         strict_timestamp_index[1]++;
-        if (strict_timestamp_index[1] == sizeof(PUMP_STRICT_TIMING_1) / sizeof(uint32_t)) {
-            strict_timestamp_index[1] = 0;
-        }
     }
-    if (PUMP_STRICT_TIMING_2[strict_timestamp_index[2]] * 1000 < (millis() - strict_timestamp_start)) {
+    if (strict_timestamp_index[2] < sizeof(PUMP_STRICT_TIMING_2) / sizeof(uint32_t) && PUMP_STRICT_TIMING_2[strict_timestamp_index[2]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(2);
         strict_timestamp_index[2]++;
-        if (strict_timestamp_index[2] == sizeof(PUMP_STRICT_TIMING_2) / sizeof(uint32_t)) {
-            strict_timestamp_index[2] = 0;
-        }
     }
-    if (PUMP_STRICT_TIMING_3[strict_timestamp_index[3]] * 1000 < (millis() - strict_timestamp_start)) {
+    if (strict_timestamp_index[3] < sizeof(PUMP_STRICT_TIMING_3) / sizeof(uint32_t) && PUMP_STRICT_TIMING_3[strict_timestamp_index[3]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(3);
         strict_timestamp_index[3]++;
-        if (strict_timestamp_index[3] == sizeof(PUMP_STRICT_TIMING_3) / sizeof(uint32_t)) {
-            strict_timestamp_index[3] = 0;
-        }
     }
-    if (PUMP_STRICT_TIMING_4[strict_timestamp_index[4]] * 1000 < (millis() - strict_timestamp_start)) {
+    if (strict_timestamp_index[4] < sizeof(PUMP_STRICT_TIMING_4) / sizeof(uint32_t) && PUMP_STRICT_TIMING_4[strict_timestamp_index[4]] * 1000 < (millis() - strict_timestamp_start)) {
         toggle_pump(4);
         strict_timestamp_index[4]++;
-        if (strict_timestamp_index[4] == sizeof(PUMP_STRICT_TIMING_4) / sizeof(uint32_t)) {
-            strict_timestamp_index[4] = 0;
-        }
     }
 
     if (PUMP_STRICT_LOOP_DURATION * 1000 < (millis() - strict_timestamp_start)) {
@@ -214,28 +200,26 @@ void enter_state_expo() {
 
     // init vars
     expo_timestamp_start = millis();
-}
-
-// TODO: Timing muss dynamisch (abbrechbar) bleiben
-void while_state_expo() {
-    // random phase
     for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
         set_random_timestamp(i);
     }
-    while ((millis() - expo_timestamp_start) % ((RANDOM_DURATION + OFF_DURATION) * 1000) < RANDOM_DURATION * 1000) {
+}
+
+void while_state_expo() {
+    // random phase
+    if ((millis() - expo_timestamp_start) < RANDOM_DURATION * 1000) {
         for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
             if (millis() > next_random_switch[i]) {
                 next_random_switch[i] = millis() + random(PUMP_MIN_DURATION * 1000, PUMP_MAX_DURATION * 1000);
                 toggle_pump(i);
             }
         }
-    }
-
-    // off phase
-    while((millis() - expo_timestamp_start + RANDOM_DURATION) % ((RANDOM_DURATION + OFF_DURATION) * 1000) < (OFF_DURATION) * 1000) {
+    } else if ((millis() - expo_timestamp_start) < (RANDOM_DURATION + OFF_DURATION) * 1000) {
         for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
             set_pump(i, LOW);
         }
+    } else {
+        enter_state_expo();
     }
 }
 
