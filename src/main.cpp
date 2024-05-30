@@ -33,12 +33,20 @@ const uint32_t PUMP_MIN_DURATION = 5; // in seconds
 const uint32_t PUMP_MAX_DURATION = 40; // in seconds
 
 // strict settings
-const uint32_t PUMP_STRICT_LOOP_DURATION = 30; // in seconds
-const uint32_t PUMP_STRICT_TIMING_0[] = {9, 10, 15, 20, 25}; // in seconds
-const uint32_t PUMP_STRICT_TIMING_1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}; // in seconds
-const uint32_t PUMP_STRICT_TIMING_2[] = {15}; // in seconds
-const uint32_t PUMP_STRICT_TIMING_3[] = {0}; // in seconds
-const uint32_t PUMP_STRICT_TIMING_4[] = {30}; // in seconds
+const uint32_t PUMP_STRICT_LOOP_DURATION = 45; // in seconds
+const uint32_t PUMP_STRICT_TIMING_0[] = {5, 10, 15, 20, 25, 30, 35, 40}; // in seconds
+const uint32_t PUMP_STRICT_TIMING_1[] = {5, 10, 15, 20, 25, 30, 35, 40}; // in seconds
+const uint32_t PUMP_STRICT_TIMING_2[] = {5, 10, 15, 20, 25, 30, 35, 40}; // in seconds
+const uint32_t PUMP_STRICT_TIMING_3[] = {5, 10, 15, 20, 25, 30, 35, 40}; // in seconds
+const uint32_t PUMP_STRICT_TIMING_4[] = {5, 10, 15, 20, 25, 30, 35, 40}; // in seconds
+
+// expo settings
+const uint32_t PUMP_EXPO_LOOP_DURATION = 600; // in seconds
+const uint32_t PUMP_EXPO_TIMING_0[] = {0, 10, 15, 20, 25, 30, 35, 40, 150}; // in seconds
+const uint32_t PUMP_EXPO_TIMING_1[] = {0, 10, 15, 20, 25, 30, 35, 40, 55, 60, 75, 80, 100, 130, 150}; // in seconds
+const uint32_t PUMP_EXPO_TIMING_2[] = {0, 10, 15, 20, 25, 30, 35, 40, 60, 75, 100, 130, 150}; // in seconds
+const uint32_t PUMP_EXPO_TIMING_3[] = {0, 10, 15, 20, 25, 30, 35, 40, 150}; // in seconds
+const uint32_t PUMP_EXPO_TIMING_4[] = {0, 10, 15, 20, 25, 30, 35, 40, 45, 90, 100, 130, 150}; // in seconds
 
 // expo settings
 const uint32_t RANDOM_DURATION = 30; // in seconds
@@ -193,33 +201,47 @@ void enter_state_expo() {
     Serial.println("enter_state_expo");
     state = STATE_EXPO;
 
-    // init relays
+    // init vars
+    strict_timestamp_start = millis();
     for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
-        set_pump(i, LOW);
+        strict_timestamp_index[i] = 0;
     }
 
-    // init vars
-    expo_timestamp_start = millis();
+    // init all pumps
     for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
-        set_random_timestamp(i);
+        set_pump(i, LOW);
     }
 }
 
 void while_state_expo() {
-    // random phase
-    if ((millis() - expo_timestamp_start) < RANDOM_DURATION * 1000) {
-        for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
-            if (millis() > next_random_switch[i]) {
-                next_random_switch[i] = millis() + random(PUMP_MIN_DURATION * 1000, PUMP_MAX_DURATION * 1000);
-                toggle_pump(i);
-            }
-        }
-    } else if ((millis() - expo_timestamp_start) < (RANDOM_DURATION + OFF_DURATION) * 1000) {
+    if (strict_timestamp_index[0] < sizeof(PUMP_EXPO_TIMING_0) / sizeof(uint32_t) && PUMP_EXPO_TIMING_0[strict_timestamp_index[0]] * 1000 < (millis() - strict_timestamp_start)) {
+        toggle_pump(0);
+        strict_timestamp_index[0]++;
+    }
+    if (strict_timestamp_index[1] < sizeof(PUMP_EXPO_TIMING_1) / sizeof(uint32_t) && PUMP_EXPO_TIMING_1[strict_timestamp_index[1]] * 1000 < (millis() - strict_timestamp_start)) {
+        toggle_pump(1);
+        strict_timestamp_index[1]++;
+    }
+    if (strict_timestamp_index[2] < sizeof(PUMP_EXPO_TIMING_2) / sizeof(uint32_t) && PUMP_EXPO_TIMING_2[strict_timestamp_index[2]] * 1000 < (millis() - strict_timestamp_start)) {
+        toggle_pump(2);
+        strict_timestamp_index[2]++;
+    }
+    if (strict_timestamp_index[3] < sizeof(PUMP_EXPO_TIMING_3) / sizeof(uint32_t) && PUMP_EXPO_TIMING_3[strict_timestamp_index[3]] * 1000 < (millis() - strict_timestamp_start)) {
+        toggle_pump(3);
+        strict_timestamp_index[3]++;
+    }
+    if (strict_timestamp_index[4] < sizeof(PUMP_EXPO_TIMING_4) / sizeof(uint32_t) && PUMP_EXPO_TIMING_4[strict_timestamp_index[4]] * 1000 < (millis() - strict_timestamp_start)) {
+        toggle_pump(4);
+        strict_timestamp_index[4]++;
+    }
+
+    if (PUMP_EXPO_LOOP_DURATION * 1000 < (millis() - strict_timestamp_start)) {
+        // init vars and pump states
+        strict_timestamp_start = millis();
         for (uint8_t i = 0; i < NUMBER_OF_PUMPS; i++) {
             set_pump(i, LOW);
+            strict_timestamp_index[i] = 0;
         }
-    } else {
-        enter_state_expo();
     }
 }
 
